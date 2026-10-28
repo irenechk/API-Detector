@@ -1,0 +1,43 @@
+[package]
+name = "zaddp"
+version = "0.1.0"
+edition = "2021"
+description = "Local service discovery and ZADDP API analysis CLI"
+license = "MIT"
+repository = "https://github.com/gatik1234err/zombieapi"
+rust-version = "1.75"
+
+[[bin]]
+name = "zaddp"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4.5", features = ["derive"] }
+comfy-table = "7"
+dirs = "5"
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+toml = "0.8"
+url = "2"
+
+[dev-dependencies]
+tempfile = "3"
+
+[package.metadata.deb]
+maintainer = "ZADDP Team <team@zaddp.com>"
+copyright = "2026, ZADDP"
+section = "utils"
+priority = "optional"
+extended-description = """\
+ZADDP CLI for local API security scanning. \
+Discovers local HTTP services and analyzes them using local heuristics and ZADDP server integration."""
+depends = "$auto, python3 (>= 3.11)"
+assets = [
+    ["target/release/zaddp", "usr/bin/zaddp", "755"],
+    ["infer/*", "usr/lib/zaddp/infer/", "644"],
+]

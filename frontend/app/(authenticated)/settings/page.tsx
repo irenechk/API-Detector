@@ -1,6 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSession } from 'next-auth/react'
+import { api } from '@/lib/api'
+import toast from 'react-hot-toast'
 import {
   Settings, Bell, Shield, Users, Database, GitBranch,
   Sliders, FileText, Eye, Activity, Globe, Mail, MessageSquare,
@@ -14,6 +18,7 @@ const SETTINGS_TABS = [
   { id: 'risk-scoring', label: 'Risk Scoring', icon: Shield },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'integrations', label: 'Integrations', icon: GitBranch },
+  { id: 'ml-models', label: 'ML Models', icon: Database },
   { id: 'users', label: 'User Management', icon: Users },
   { id: 'audit-log', label: 'Audit Log', icon: FileText },
 ]
@@ -35,6 +40,8 @@ export default function SettingsPage() {
         return <NotificationSettings />
       case 'integrations':
         return <IntegrationSettings />
+      case 'ml-models':
+        return <MLModelsSettings />
       case 'audit-log':
         return <AuditLogViewer />
       default:
@@ -733,6 +740,224 @@ function AuditLogViewer() {
             </span>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+type MLModelVersion = {
+  model_type: string
+  version: string
+  training_date: string
+  training_samples: number | null
+  source_type: string
+  cv_accuracy_mean: number | null
+  train_accuracy: number | null
+  status: string
+}
+
+function MLModelsSettings() {
+  const { data: session } = useSession()
+  const role = (session?.user as any)?.role
+  const isAdmin = role === 'admin'
+  const queryClient = useQueryClient()
+  const [card, setCard] = useState<{ title: string; body: string } | null>(null)
+
+  const modelsQuery = useQuery({
+    queryKey: ['ml-models'],
+    queryFn: () => api.getMLModels(),
+  })
+  const driftQuery = useQuery({
+    queryKey: ['ml-drift'],
+    queryFn: () => api.getDrift(),
+    retry: false,
+  })
+
+  const promoteMutation = useMutation({
+    mutationFn: (model: MLModelVersion) => api.promoteModel(model.model_type, model.version),
+    onSuccess: () => {
+      toast.success('Model promoted to champion')
+      queryClient.invalidateQueries({ queryKey: ['ml-models'] })
+    },
+    onError: (err: any) => toast.error(err?.message || 'Promotion failed (admin only)'),
+  })
+
+  const baselineMutation = useMutation({
+    mutationFn: () => api.setDriftBaseline(),
+    onSuccess: () => {
+      toast.success('Drift baseline updated')
+      queryClient.invalidateQueries({ queryKey: ['ml-drift'] })
+    },
+    onError: (err: any) => toast.error(err?.message || 'Baseline update failed (admin only)'),
+  })
+
+  const openCard = async (model: MLModelVersion) => {
+    try {
+      const body = await api.getModelCard(model.model_type, model.version)
+      setCard({ title: `${model.model_type} ${model.version}`, body })
+    } catch {
+      toast.error('Model card unavailable')
+    }
+  }
+
+  const models: MLModelVersion[] = modelsQuery.data?.data?.models || []
+  const drift = driftQuery.data?.data
+
+  if (modelsQuery.isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-section-title text-gray-900 dark:text-white">Model Registry</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Trained model versions, champion status, and model cards. Promotion and baseline updates require an admin session.
+          </p>
+        </div>
+        <button
+          onClick={() => modelsQuery.refetch()}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
+          <RefreshCw size={14} />
+          Refresh
+        </button>
+      </div>
+
+      {modelsQuery.error ? (
+        <p className="text-sm text-red-500">Failed to load model registry.</p>
+      ) : models.length === 0 ? (
+        <p className="text-sm text-gray-400">
+          No registered models. Run `python -m app.ml.train_enhanced` in the backend to generate them.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wider text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                <th className="py-2 pr-4">Model</th>
+                <th className="py-2 pr-4">Version</th>
+                <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">Samples</th>
+                <th className="py-2 pr-4">CV</th>
+                <th className="py-2 pr-4">Trained</th>
+                <th className="py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {models.map((model) => (
+                <tr key={`${model.model_type}-${model.version}`} className="border-b border-gray-100 dark:border-gray-700/50">
+                  <td className="py-2.5 pr-4 capitalize text-gray-900 dark:text-white">{model.model_type}</td>
+                  <td className="py-2.5 pr-4 font-mono text-xs text-gray-600 dark:text-gray-300">{model.version}</td>
+                  <td className="py-2.5 pr-4">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      model.status === 'champion'
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                        : model.status === 'archived'
+                          ? 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                    }`}>
+                      {model.status}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-4 text-gray-600 dark:text-gray-300">{model.training_samples ?? '—'}</td>
+                  <td className="py-2.5 pr-4 text-gray-600 dark:text-gray-300">
+                    {model.cv_accuracy_mean != null ? `${Math.round(model.cv_accuracy_mean * 100)}%` : '—'}
+                  </td>
+                  <td className="py-2.5 pr-4 text-xs text-gray-500">
+                    {model.training_date ? new Date(model.training_date).toLocaleDateString() : '—'}
+                  </td>
+                  <td className="py-2.5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => openCard(model)}
+                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        Card
+                      </button>
+                      {isAdmin && model.status !== 'champion' && (
+                        <button
+                          onClick={() => promoteMutation.mutate(model)}
+                          disabled={promoteMutation.isPending}
+                          className="text-xs text-green-600 dark:text-green-400 hover:underline disabled:opacity-50"
+                        >
+                          Promote
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {card && (
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+            <span className="text-sm font-medium text-gray-900 dark:text-white">{card.title}</span>
+            <button onClick={() => setCard(null)} className="text-xs text-gray-500 hover:text-gray-700">
+              Close
+            </button>
+          </div>
+          <pre className="p-4 text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap font-mono max-h-96 overflow-y-auto">
+            {card.body}
+          </pre>
+        </div>
+      )}
+
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Prediction Drift</h4>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              PSI threshold {drift?.threshold ?? '—'} · {drift?.buffered_predictions ?? 0} buffered predictions
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={() => baselineMutation.mutate()}
+              disabled={baselineMutation.isPending}
+              className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              Set baseline from inventory
+            </button>
+          )}
+        </div>
+        {driftQuery.error ? (
+          <p className="text-xs text-gray-400">Drift monitoring unavailable.</p>
+        ) : drift?.latest ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-700/40">
+              <p className="text-[10px] uppercase tracking-wider text-gray-400">PSI</p>
+              <p className="font-medium text-gray-900 dark:text-white">{drift.latest.psi}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-700/40">
+              <p className="text-[10px] uppercase tracking-wider text-gray-400">Status</p>
+              <p className={`font-medium ${drift.latest.is_drifted ? 'text-red-500' : 'text-green-500'}`}>
+                {drift.latest.is_drifted ? 'Drifted' : 'Stable'}
+              </p>
+            </div>
+            <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-700/40">
+              <p className="text-[10px] uppercase tracking-wider text-gray-400">Baseline</p>
+              <p className="font-medium text-gray-900 dark:text-white">{drift.latest.samples_baseline}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-700/40">
+              <p className="text-[10px] uppercase tracking-wider text-gray-400">Current</p>
+              <p className="font-medium text-gray-900 dark:text-white">{drift.latest.samples_current}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400">
+            No drift report yet. Set a baseline, then record predictions via the scanner or inventory pages.
+          </p>
+        )}
       </div>
     </div>
   )

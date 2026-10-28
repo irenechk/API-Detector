@@ -44,6 +44,13 @@ export default function APIDetailPage() {
     retry: false,
   })
 
+  const { data: predictionData, error: predictionError } = useQuery<any>({
+    queryKey: ['api-prediction', apiId],
+    queryFn: () => api.getStatusPrediction(apiId!),
+    enabled: !!apiId,
+    retry: false,
+  })
+
   useEffect(() => {
     if (error) {
       console.error('API detail fetch error:', error)
@@ -270,6 +277,57 @@ export default function APIDetailPage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="md:col-span-2 bg-white dark:bg-gray-800 rounded-card shadow-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Activity size={16} className="text-blue-500" />
+                <h3 className="text-section-title text-gray-900 dark:text-white">Predicted Lifecycle</h3>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                GradientBoosting · uncalibrated
+              </span>
+            </div>
+            {predictionError ? (
+              <p className="text-sm text-gray-400">Status model unavailable. Train it with `python -m app.ml.train_enhanced`.</p>
+            ) : predictionData?.data?.prediction ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <StatusBadge status={predictionData.data.prediction.status} />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {Math.round((predictionData.data.prediction.status_confidence || 0) * 100)}% confidence
+                  </span>
+                  {predictionData.data.current_status !== predictionData.data.prediction.status && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                      differs from current status
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {Object.entries(predictionData.data.prediction.status_probabilities || {}).map(
+                    ([label, probability]: [string, any]) => (
+                      <div key={label}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-gray-600 dark:text-gray-400 capitalize">{label}</span>
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            {Math.round(probability * 100)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                          <div
+                            className="h-1.5 rounded-full bg-blue-500"
+                            style={{ width: `${Math.round(probability * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">Loading prediction…</p>
+            )}
           </div>
         </div>
       )}

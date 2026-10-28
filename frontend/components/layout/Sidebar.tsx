@@ -10,15 +10,19 @@ import {
   Shield,
   FileText,
   Settings,
+  Search,
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
+  LogOut,
 } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard', label: 'Command Center', icon: LayoutDashboard },
   { href: '/inventory', label: 'API Inventory', icon: Database },
+  { href: '/api-scanner', label: 'API Scanner', icon: Search },
   { href: '/zombie-graveyard', label: 'Zombie Graveyard', icon: Skull },
   { href: '/security-center', label: 'Security Center', icon: Shield },
   { href: '/reports', label: 'Reports', icon: FileText },
@@ -72,19 +76,41 @@ export function Sidebar() {
         })}
       </nav>
 
-      {sidebarOpen && (
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
-              SC
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        {sidebarOpen ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                AD
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">Signed In</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Azure AD</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">Dr. Sarah Chen</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Admin</p>
-            </div>
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+            >
+              <LogOut size={16} />
+              Sign Out
+            </button>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+              AD
+            </div>
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 hover:text-red-500 transition-colors"
+              title="Sign Out"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        )}
+      </div>
     </aside>
   )
 }

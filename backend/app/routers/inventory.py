@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from typing import Optional, List
+from datetime import datetime, timedelta
 import math
 import uuid
 
@@ -300,12 +301,11 @@ async def quarantine_api(api_id: str, db: AsyncSession = Depends(get_db)):
     workflow = wf_result.scalar_one_or_none()
 
     if not workflow:
-        from datetime import datetime, timedelta
         workflow = DecommissionWorkflow(
             api_id=uid,
             current_stage="quarantined",
             quarantined_at=datetime.utcnow(),
-            quarantined_by="system",
+            quarantined_by="user-action",
             grace_period_days=30,
             auto_decommission_date=datetime.utcnow() + timedelta(days=30),
         )

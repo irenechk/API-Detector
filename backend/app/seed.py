@@ -3,11 +3,11 @@ import random
 import uuid
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy import text
+from sqlalchemy import text, select
 
 from app.models import (
     Base, API, SecurityFinding, TrafficMetric, AuditTrail,
-    DecommissionWorkflow, User, APIDependency
+    DecommissionWorkflow, User, APIDependency, PendingQuarantine
 )
 from app.database import DATABASE_URL
 
@@ -313,7 +313,7 @@ async def seed_database():
                 current_stage=stage,
                 detected_at=now - timedelta(days=random.randint(15, 60)),
                 quarantined_at=now - timedelta(days=random.randint(5, 30)) if stage in ["quarantined", "approved", "decommissioned"] else None,
-                quarantined_by="system" if stage in ["quarantined", "approved", "decommissioned"] else None,
+                quarantined_by="user-action" if stage in ["quarantined", "approved", "decommissioned"] else None,
                 approved_at=now - timedelta(days=random.randint(1, 10)) if stage == "decommissioned" else None,
                 approved_by="admin@zaddp.io" if stage == "decommissioned" else None,
                 decommissioned_at=now - timedelta(days=random.randint(1, 5)) if stage == "decommissioned" else None,
@@ -356,6 +356,33 @@ async def seed_database():
             )
             session.add(audit)
 
+        # Pending quarantine candidates (for notification bubble)
+        orphaned_apis = [api for api in created_apis if api.status == "orphaned"]
+        shadow_apis = [api for api in created_apis if api.status == "shadow"]
+        pending_sources = orphaned_apis[:3] + shadow_apis[:2]
+        pending_reasons = [
+            "No traffic for 120+ days and no owner assigned",
+            "Deprecated endpoint still receiving traffic — no owner",
+            "Orphaned API with critical security findings unresolved",
+            "Shadow API — undocumented, no governance, observed in production traffic",
+            "Shadow API detected via network scan — no OpenAPI spec",
+        ]
+        pending_count = 0
+        for i, api in enumerate(pending_sources):
+            existing = await session.execute(
+                select(DecommissionWorkflow).where(DecommissionWorkflow.api_id == api.id)
+            )
+            if existing.scalar_one_or_none():
+                continue
+            pq = PendingQuarantine(
+                id=uuid.uuid4(),
+                api_id=api.id,
+                reason=pending_reasons[i % len(pending_reasons)],
+                detected_at=now - timedelta(days=random.randint(1, 7)),
+            )
+            session.add(pq)
+            pending_count += 1
+
         await session.commit()
         print(f"Database seeded successfully!")
         print(f"  - {len(created_apis)} APIs created")
@@ -365,6 +392,7 @@ async def seed_database():
         print(f"  - 20 API dependencies")
         print(f"  - 25 audit trail entries")
         print(f"  - 1 admin user")
+        print(f"  - {pending_count} pending quarantine candidates")
 
     await engine.dispose()
 

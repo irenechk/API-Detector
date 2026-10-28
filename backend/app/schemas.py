@@ -4,6 +4,29 @@ from datetime import datetime
 import uuid
 
 
+class MLClassification(BaseModel):
+    category: str
+    category_confidence: float
+    severity: str
+    severity_confidence: float
+    vulnerabilities: List[str] = []
+    vulnerability_confidences: Dict[str, float] = {}
+    risk_score: int
+    ml_model_version: str
+
+    class Config:
+        from_attributes = True
+
+
+class StatusClassification(BaseModel):
+    status: str
+    status_confidence: float
+    status_probabilities: Dict[str, float] = {}
+
+    class Config:
+        from_attributes = True
+
+
 class APIInventoryItem(BaseModel):
     id: str
     endpoint_path: str
@@ -26,6 +49,8 @@ class APIInventoryItem(BaseModel):
     tags: Optional[List[str]]
     traffic_7d: Optional[int] = 0
     security_findings_count: Optional[int] = 0
+    ml_classification: Optional[MLClassification] = None
+    status_prediction: Optional[StatusClassification] = None
 
     class Config:
         from_attributes = True
@@ -136,6 +161,8 @@ class APIDetail(BaseModel):
     security_findings: List[SecurityFindingItem] = []
     traffic_metrics: List[TrafficMetricItem] = []
     decommission_workflow: Optional[DecommissionWorkflowItem] = None
+    ml_classification: Optional[MLClassification] = None
+    status_prediction: Optional[StatusClassification] = None
 
     class Config:
         from_attributes = True
@@ -203,6 +230,22 @@ class UserItem(BaseModel):
     mfa_enabled: bool
     last_login_at: Optional[datetime]
     is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class PendingQuarantineItem(BaseModel):
+    id: str
+    api_id: str
+    endpoint_path: str
+    http_method: str
+    environment: str
+    risk_score: int
+    owner_team: Optional[str]
+    reason: str
+    detected_at: datetime
+    dismissed_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

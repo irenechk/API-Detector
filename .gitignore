@@ -1,5 +1,6 @@
 node_modules/
 .next/
+.venv/
 __pycache__/
 *.pyc
 .env
@@ -10,3 +11,8 @@ build/
 .pytest_cache/
 *.log
 .DS_Store
+backend/app/ml/archive/
+backend/app/ml/monitoring/
+backend/app/ml/models_enhanced/status_metadata.json
+cli/target/
+cli/Cargo.lock

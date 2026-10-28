@@ -58,3 +58,66 @@ export const useFilterStore = create<FilterState>((set) => ({
   setSearchQuery: (q) => set({ searchQuery: q }),
   clearFilters: () => set({ filters: {}, searchQuery: '' }),
 }))
+
+interface PendingQuarantineItem {
+  id: string
+  api_id: string
+  endpoint_path: string
+  http_method: string
+  environment: string
+  risk_score: number
+  owner_team: string | null
+  reason: string
+  detected_at: string
+}
+
+interface QuarantineNotificationState {
+  pendingItems: PendingQuarantineItem[]
+  loading: boolean
+  error: string | null
+  fetchPending: () => Promise<void>
+  approveQuarantine: (pqId: string) => Promise<void>
+  dismissQuarantine: (pqId: string) => Promise<void>
+}
+
+export const useQuarantineNotificationStore = create<QuarantineNotificationState>((set, get) => ({
+  pendingItems: [],
+  loading: false,
+  error: null,
+
+  fetchPending: async () => {
+    set({ loading: true, error: null })
+    try {
+      const res = await fetch('/api/v1/notifications/pending-quarantines')
+      if (!res.ok) throw new Error('Failed to fetch pending quarantines')
+      const json = await res.json()
+      set({ pendingItems: json.data || [], loading: false })
+    } catch (e: any) {
+      set({ error: e.message, loading: false })
+    }
+  },
+
+  approveQuarantine: async (pqId: string) => {
+    try {
+      const res = await fetch(`/api/v1/notifications/pending-quarantines/${pqId}/approve`, { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to approve quarantine')
+      set((state) => ({
+        pendingItems: state.pendingItems.filter((item) => item.id !== pqId),
+      }))
+    } catch (e: any) {
+      set({ error: e.message })
+    }
+  },
+
+  dismissQuarantine: async (pqId: string) => {
+    try {
+      const res = await fetch(`/api/v1/notifications/pending-quarantines/${pqId}/dismiss`, { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to dismiss')
+      set((state) => ({
+        pendingItems: state.pendingItems.filter((item) => item.id !== pqId),
+      }))
+    } catch (e: any) {
+      set({ error: e.message })
+    }
+  },
+}))

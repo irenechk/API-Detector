@@ -2,17 +2,45 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle } from 'lucide-react'
+import { signIn } from 'next-auth/react'
+import { AlertTriangle, Eye, EyeOff, User } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [showDemoForm, setShowDemoForm] = useState(false)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleLogin = () => {
+  const handleAzureLogin = async () => {
     setLoading(true)
-    setTimeout(() => {
+    await signIn('azure-ad', { callbackUrl: '/dashboard' })
+  }
+
+  const handleDemoLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!username || !password) {
+      setError('Please enter username and password')
+      return
+    }
+    setLoading(true)
+    setError('')
+
+    const result = await signIn('demo', {
+      username,
+      password,
+      redirect: false,
+      callbackUrl: '/dashboard',
+    })
+
+    if (result?.error) {
+      setError('Invalid credentials — try admin/admin')
+      setLoading(false)
+    } else if (result?.ok) {
       router.push('/dashboard')
-    }, 1000)
+    }
   }
 
   return (
@@ -31,7 +59,7 @@ export default function LoginPage() {
 
           <div className="space-y-4">
             <button
-              onClick={handleLogin}
+              onClick={handleAzureLogin}
               disabled={loading}
               className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
@@ -59,12 +87,70 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button
-              onClick={handleLogin}
-              className="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors"
-            >
-              Demo Login (Quick Access)
-            </button>
+            <>
+              <button
+                onClick={() => { setShowDemoForm(!showDemoForm); setError('') }}
+                className="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors"
+              >
+                Demo Login (Quick Access)
+              </button>
+
+              {showDemoForm && (
+                <form onSubmit={handleDemoLogin} className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Username</label>
+                    <div className="relative">
+                      <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="admin"
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-400"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••"
+                        className="w-full pl-4 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <p className="text-xs text-red-500 flex items-center gap-1">
+                      <AlertTriangle size={12} />
+                      {error}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-2.5 px-4 bg-gray-800 dark:bg-gray-600 hover:bg-gray-900 dark:hover:bg-gray-500 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      'Sign In'
+                    )}
+                  </button>
+                </form>
+              )}
+            </>
           </div>
 
           <p className="text-center text-xs text-gray-400 mt-6">

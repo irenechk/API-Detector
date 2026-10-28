@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 from app.database import init_db
-from app.routers import inventory, dashboard, zombies, reports, webhooks
+from app.routers import inventory, dashboard, zombies, reports, webhooks, notifications, scanner, ml
 
 
 @asynccontextmanager
@@ -32,6 +32,9 @@ app.include_router(dashboard.router)
 app.include_router(zombies.router)
 app.include_router(reports.router)
 app.include_router(webhooks.router)
+app.include_router(notifications.router)
+app.include_router(scanner.router)
+app.include_router(ml.router)
 
 
 @app.get("/api/v1/health")

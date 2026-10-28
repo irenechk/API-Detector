@@ -209,3 +209,15 @@ class APIDependency(Base):
 
     source_api = relationship("API", foreign_keys=[source_api_id], back_populates="source_dependencies")
     target_api = relationship("API", foreign_keys=[target_api_id], back_populates="target_dependencies")
+
+
+class PendingQuarantine(Base):
+    __tablename__ = "pending_quarantines"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    api_id = Column(UUID(as_uuid=True), ForeignKey("apis.id"), nullable=False, unique=True, index=True)
+    reason = Column(String(300), nullable=False)
+    detected_at = Column(DateTime, default=datetime.utcnow)
+    dismissed_at = Column(DateTime, nullable=True)
+
+    api = relationship("API", lazy="selectin")

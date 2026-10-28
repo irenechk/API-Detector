@@ -1,0 +1,191 @@
+{
+  "structural_feature_names": [
+    "depth",
+    "path_length",
+    "num_segments",
+    "avg_segment_length",
+    "has_numeric_id",
+    "has_uuid",
+    "has_version_prefix",
+    "has_api_prefix",
+    "method_GET",
+    "method_POST",
+    "method_PUT",
+    "method_DELETE",
+    "method_PATCH",
+    "method_OPTIONS",
+    "method_HEAD",
+    "admin_kw_count",
+    "sensitive_kw_count",
+    "auth_kw_count",
+    "crud_kw_count",
+    "file_kw_count",
+    "health_kw_count",
+    "doc_kw_count",
+    "payment_kw_count",
+    "num_numeric_segments",
+    "num_uuid_segments",
+    "ratio_numeric"
+  ],
+  "cv_scores": {
+    "category_cv_accuracy_mean": 0.7734823785126532,
+    "category_cv_accuracy_std": 0.011870693900708157
+  },
+  "feature_importance": {
+    "top_features": [
+      {
+        "feature": "admin_kw_count",
+        "importance": 0.0694
+      },
+      {
+        "feature": "auth_kw_count",
+        "importance": 0.0617
+      },
+      {
+        "feature": "users",
+        "importance": 0.0521
+      },
+      {
+        "feature": "file_kw_count",
+        "importance": 0.0367
+      },
+      {
+        "feature": "crud_kw_count",
+        "importance": 0.0315
+      },
+      {
+        "feature": "graphql",
+        "importance": 0.0297
+      },
+      {
+        "feature": "depth_3 first_seg_api",
+        "importance": 0.0265
+      },
+      {
+        "feature": "api",
+        "importance": 0.0265
+      },
+      {
+        "feature": "sensitive_kw_count",
+        "importance": 0.0244
+      },
+      {
+        "feature": "ratio_numeric",
+        "importance": 0.0241
+      },
+      {
+        "feature": "health_kw_count",
+        "importance": 0.0221
+      },
+      {
+        "feature": "metrics",
+        "importance": 0.021
+      },
+      {
+        "feature": "avg_segment_length",
+        "importance": 0.0206
+      },
+      {
+        "feature": "auth",
+        "importance": 0.0152
+      },
+      {
+        "feature": "depth_1",
+        "importance": 0.0152
+      },
+      {
+        "feature": "events",
+        "importance": 0.0127
+      },
+      {
+        "feature": "search",
+        "importance": 0.0115
+      },
+      {
+        "feature": "notifications",
+        "importance": 0.0105
+      },
+      {
+        "feature": "depth_4",
+        "importance": 0.0101
+      },
+      {
+        "feature": "bigram_api_v1",
+        "importance": 0.0099
+      },
+      {
+        "feature": "path_length",
+        "importance": 0.0099
+      },
+      {
+        "feature": "reports",
+        "importance": 0.0099
+      },
+      {
+        "feature": "doc_kw_count",
+        "importance": 0.0088
+      },
+      {
+        "feature": "payment_kw_count",
+        "importance": 0.0083
+      },
+      {
+        "feature": "items",
+        "importance": 0.0072
+      },
+      {
+        "feature": "logs",
+        "importance": 0.0069
+      },
+      {
+        "feature": "status",
+        "importance": 0.0066
+      },
+      {
+        "feature": "first_seg_api",
+        "importance": 0.0065
+      },
+      {
+        "feature": "method_get",
+        "importance": 0.0065
+      },
+      {
+        "feature": "api v1",
+        "importance": 0.0065
+      }
+    ],
+    "num_total_features": 1103
+  },
+  "training_samples": 340,
+  "trained_at": "2026-10-27T06:10:30.103390+00:00",
+  "dataset_hash": "4dd2f7e891c20ab2f6f682bd798bc9972a2723d1130c19b387350c6a6bf6b581",
+  "label_distribution": {
+    "category": {
+      "configuration": 18,
+      "user_management": 28,
+      "system_health": 17,
+      "payment": 15,
+      "analytics": 22,
+      "file_operations": 24,
+      "admin": 23,
+      "authentication": 32,
+      "integration": 76,
+      "search": 12,
+      "data_crud": 26,
+      "unknown": 14,
+      "notifications": 22,
+      "messaging": 11
+    },
+    "severity": {
+      "medium": 132,
+      "critical": 90,
+      "high": 103,
+      "low": 15
+    }
+  },
+  "label_provenance": "rule-derived",
+  "probabilities_calibrated": false,
+  "train_accuracy": 1.0,
+  "severity_train_accuracy": 1.0,
+  "sklearn_version": "1.9.0"
+}
